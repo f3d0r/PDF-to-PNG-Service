@@ -89,16 +89,15 @@ app.get('/get_image', function (req, res) {
                 resizeHeight = req.query.resize_height;
 
                 pdfConverter.convertPDF(req.query.document_id, req.query.page_number, makeTransparent, resizeWidth, resizeHeight, function (imagePath) {
-                    res.sendFile(__dirname + "/" + imagePath, function (err) {
+                    res.download(__dirname + "/" + imagePath, function (err) {
                         if (err) {
                             console.log(err);
-                        } else {
-                            fs.unlink(imagePath, (err) => {
-                                if (err) {
-                                    console.log("File could not be deleted : " + err);
-                                }
-                            });
                         }
+                        fs.unlink(imagePath, (err) => {
+                            if (err) {
+                                console.log("File could not be deleted : " + err);
+                            }
+                        });
                     });
                 }, function (err) {
                     errors.sendErrorJSON(res, 'INVALID_PARAMETER', "the document_id or page_number you entered is invalid.");
