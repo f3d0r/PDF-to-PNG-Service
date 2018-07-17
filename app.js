@@ -100,7 +100,7 @@ app.get('/get_image', function (req, res) {
                         });
                     });
                 }, function (err) {
-                    errors.sendErrorJSON(res, 'INVALID_PARAMETER', "the document_id or page_number you entered is invalid.");
+                    errors.sendErrorJSON(res, 'INVALID_PARAMETER', err);
                 });
             }
         }

@@ -33,11 +33,7 @@ module.exports = {
                 successCB(newFilePath)
             });
         }, function (err) {
-            if (err.message == "Failed to convert page to image") {
-                errorCB("<p>The page_number you entered was outside the range of page numbers of PDF you uploaded.</p>");
-            } else {
-                errorCB(err);
-            }
+            errorCB(err.stderr)
         });
     }
 }
