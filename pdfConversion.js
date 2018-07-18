@@ -28,7 +28,7 @@ module.exports = {
             var newFilePath = miscFunctions.removeFilename(imagePath) + uniqueString() + ".png";
             fs.rename(imagePath, newFilePath, function (err) {
                 if (err) {
-                    errorCB("The conversion could not take place.");
+                    return errorCB("The conversion could not take place.");
                 }
                 successCB(newFilePath)
             });
