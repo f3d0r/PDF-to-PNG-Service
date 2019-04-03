@@ -1,30 +1,111 @@
 {
-  "name": "pdf_to_png_service",
-  "version": "1.0.0",
+  "author": "Fedor Paretsyk",
+  "bugs": {
+    "url": "https://github.com/f3d0r/PDF-to-PNG-Service/issues"
+  },
+  "dependencies": {
+    "express": "^4.16.4",
+    "express-async-errors": "^3.1.1",
+    "multer": "^1.4.1",
+    "pdf-image": "^2.0.0",
+    "pdf-parse": "^1.1.1",
+    "unique-string": "^1.0.0"
+  },
   "description": "A PDF to PNG Service, converting PDFs to PNG images, retrievable through GET requests.",
+  "devDependencies": {
+    "ajv": "^6.10.0",
+    "eslint": "^5.16.0",
+    "eslint-config-airbnb": "^17.1.0",
+    "eslint-config-prettier": "^4.1.0",
+    "eslint-plugin-import": "^2.16.0",
+    "eslint-plugin-json": "^1.4.0",
+    "eslint-plugin-jsx-a11y": "^6.2.1",
+    "eslint-plugin-node": "^8.0.1",
+    "eslint-plugin-prettier": "^3.0.1",
+    "eslint-plugin-react": "^7.12.4",
+    "eslint-plugin-sort-requires": "^2.1.0",
+    "prettier": "^1.16.4"
+  },
+  "engines": {
+    "node": ">=10.0.0"
+  },
+  "eslintConfig": {
+    "env": {
+      "browser": false,
+      "commonjs": true,
+      "es6": true,
+      "node": true
+    },
+    "extends": [
+      "airbnb",
+      "plugin:node/recommended",
+      "prettier"
+    ],
+    "globals": {
+      "Atomics": "readonly",
+      "SharedArrayBuffer": "readonly"
+    },
+    "parserOptions": {
+      "ecmaVersion": 9
+    },
+    "plugins": [
+      "prettier",
+      "json",
+      "sort-requires"
+    ],
+    "rules": {
+      "import/order": 0,
+      "node/exports-style": [
+        "error",
+        "module.exports"
+      ],
+      "node/prefer-global/buffer": [
+        "error",
+        "always"
+      ],
+      "node/prefer-global/console": [
+        "error",
+        "always"
+      ],
+      "node/prefer-global/process": [
+        "error",
+        "always"
+      ],
+      "node/prefer-global/url": [
+        "error",
+        "always"
+      ],
+      "node/prefer-global/url-search-params": [
+        "error",
+        "always"
+      ],
+      "prettier/prettier": 0,
+      "sort-keys": [
+        "error",
+        "asc",
+        {
+          "caseSensitive": true,
+          "natural": true
+        }
+      ],
+      "sort-requires/sort-requires": 2
+    }
+  },
+  "homepage": "https://github.com/f3d0r/PDF-to-PNG-Service#readme",
+  "license": "MIT",
   "main": "index.js",
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+  "name": "pdf_to_png_service",
+  "prettier": {
+    "printWidth": 100,
+    "singleQuote": true,
+    "tabWidth": 2
   },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/f3d0r/PDF-to-PNG-Service.git"
   },
-  "author": "Fedor Paretsyk",
-  "license": "MIT",
-  "bugs": {
-    "url": "https://github.com/f3d0r/PDF-to-PNG-Service/issues"
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "homepage": "https://github.com/f3d0r/PDF-to-PNG-Service#readme",
-  "dependencies": {
-    "aws-s3-promisified": "^2.0.0",
-    "digitalocean": "^1.1.1",
-    "docx-pdf-pagecount": "0.0.3",
-    "express": "^4.16.3",
-    "multer": "^1.3.1",
-    "pdf-image": "^2.0.0",
-    "s3": "^4.4.0",
-    "sharp": "^0.20.5",
-    "unique-string": "^1.0.0"
-  }
+  "version": "1.0.0"
 }

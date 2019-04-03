@@ -1,113 +1,129 @@
 const express = require('express');
+require('express-async-errors');
+
 const app = express();
-const uniqueString = require('unique-string');
-const multer = require('multer');
+
+const config = require('./config');
 const errors = require('./errorHandler');
-const pdfConverter = require('./pdfConversion');
-const getPageCount = require('docx-pdf-pagecount');
-const miscFunctions = require('./miscFunctions');
-const config = require('./config')
 const fs = require('fs');
-// ------------------------------------------------------------------------------
-
-var storage = multer.diskStorage({ //multers disk storage settings
-    destination: function (req, file, cb) {
-        cb(null, config.API.ORIGINAL_PDF_PATH);
-    },
-    filename: function (req, file, cb) {
-        cb(null, uniqueString() + ".pdf")
-    }
-});
-
-var upload = multer({ //multer settings
-    storage: storage,
-    fileFilter: function (req, file, callback) {
-        if (!file.mimetype.endsWith('pdf')) {
-            return callback(new Error('Only PDFs are allowed.'))
-        }
-        callback(null, true)
-    }
-}).single('pdf');
-
-// SETUP SERVER --------------------------------------------------------------
+const miscFunctions = require('./miscFunctions');
+const multer = require('multer');
+const pdf = require('pdf-parse');
+const pdfConverter = require('./pdfConversion');
+const uniqueString = require('unique-string');
 
 app.use(express.json());
 
-// SERVER ENDPOINTS ----------------------------------------------------------
-
-app.get('/ping', function (req, res) {
-    res.status(200).send('pong');
-})
-
-app.get('/', function (req, res) {
-    res.status(200).send('Welcome to the PDF to PNG Conversion service.');
+const storage = multer.diskStorage({
+  // multers disk storage settings
+  destination(req, file, cb) {
+    cb(null, config.API.ORIGINAL_PDF_PATH);
+  },
+  filename(req, file, cb) {
+    cb(null, `${uniqueString()}.pdf`);
+  }
 });
 
-app.post('/convert_pdf', function (req, res) {
-    upload(req, res, function (err) {
-        if (err) {
-            res.status(415).send("Only PDFs are Allowed.");
-        } else {
-            getPageCount(req.file.path)
-                .then(pages => {
-                    var htmlReturn = "<p>"
-                    for (var currentPage = 1; currentPage <= pages; currentPage++) {
-                        htmlReturn += "<a href=\"" + config.API.BASE_URL + ":" + config.API.PORT + "/get_image" +
-                            "?document_id=" + miscFunctions.getFileName(req.file.filename) + "&page_number=" + currentPage + "\">Page #" + currentPage + "</a><br>";
-                    }
-                    htmlReturn += "</p>";
-                    res.status(200).send(htmlReturn);
-                })
-                .catch((err) => {
-                    console.log(err);
-                });
-        }
-    });
-});
-
-app.get('/get_image', function (req, res) {
-    if (!errors.queryExists(req, 'document_id')) {
-        return errors.sendErrorJSON(res, 'MISSING_PARAMETER', "document_id query parameter required.");
-    } else if (!errors.queryExists(req, 'page_number')) {
-        return errors.sendErrorJSON(res, 'MISSING_PARAMETER', "page_number query parameter required.");
-    } else {
-        var makeTransparent = false;
-        if (errors.queryExists(req, 'transparent')) {
-            makeTransparent = true;
-        }
-
-        var resizeWidth = null;
-        var resizeHeight = null;
-
-        if (errors.queryExists(req, 'resize_width') != errors.queryExists(req, 'resize_height')) {
-            return errors.sendErrorJSON(res, 'MISSING_PARAMETER', "both resize_width and resize_height query parameter required.");
-        } else if (errors.queryExists(req, 'resize_width') == errors.queryExists(req, 'resize_height')) {
-            if (req.query.resize_width <= 0 || req.query.resize_height <= 0) {
-                return errors.sendErrorJSON(res, 'INVALID_PARAMETER', "both resize_width and resize_height query parameter must be greater than 0.");
-            } else {
-                resizeWidth = req.query.resize_width;
-                resizeHeight = req.query.resize_height;
-
-                pdfConverter.convertPDF(req.query.document_id, req.query.page_number, makeTransparent, resizeWidth, resizeHeight, function (imagePath) {
-                    res.download(__dirname + "/" + imagePath, function (err) {
-                        if (err) {
-                            console.log(err);
-                        }
-                        fs.unlink(imagePath, (err) => {
-                            if (err) {
-                                console.log("File could not be deleted : " + err);
-                            }
-                        });
-                    });
-                }, function (err) {
-                    errors.sendErrorJSON(res, 'INVALID_PARAMETER', err);
-                });
-            }
-        }
+const upload = multer({
+  // multer settings
+  fileFilter(req, file, callback) {
+    if (!file.mimetype.endsWith('pdf')) {
+      return callback(new Error('Only PDFs are allowed.'));
     }
+    return callback(null, true);
+  },
+  storage
+}).single('pdf');
+
+app.get('/ping', async (req, res) => {
+  res.send('pong');
 });
 
-// START SERVER ---------------------------------------------------------------
-app.listen(config.API.PORT, function () {
-    console.log("Server has started on port " + config.API.PORT + "!");
-})
+app.get('/', (req, res) => {
+  res.send('Welcome to the PDF to PNG Conversion service.');
+});
+
+app.post('/convert_pdf', async (req, res) => {
+  const pdfPath = await new Promise((resolve, reject) => {
+    upload((uploadReq, uploadRes, err) => {
+      if (err) return reject(err);
+      return uploadReq.file.path;
+    });
+  });
+  const dataBuffer = fs.readFileSync(pdfPath);
+  const pdfInfo = await pdf(dataBuffer);
+  let htmlReturn = '<p>';
+  for (let currentPage = 1; currentPage <= pdfInfo.numpages; currentPage += 1) {
+    htmlReturn +=
+      `<a href="${config.API.BASE_URL}:${config.API.PORT}/get_image` +
+      `?document_id=${miscFunctions.getFileName(
+        req.file.filename
+      )}&page_number=${currentPage}">Page #${currentPage}</a><br>`;
+  }
+  htmlReturn += '</p>';
+  res.send(htmlReturn);
+});
+
+app.get('/get_image', async (req, res) => {
+  if (!errors.queryExists(req, 'document_id')) {
+    return errors.sendErrorJSON(res, 'MISSING_PARAMETER', 'document_id query parameter required.');
+  }
+  if (!errors.queryExists(req, 'page_number')) {
+    return errors.sendErrorJSON(res, 'MISSING_PARAMETER', 'page_number query parameter required.');
+  }
+  let makeTransparent = false;
+  if (errors.queryExists(req, 'transparent')) {
+    makeTransparent = true;
+  }
+
+  let resizeWidth = null;
+  let resizeHeight = null;
+
+  if (errors.queryExists(req, 'resize_width') !== errors.queryExists(req, 'resize_height')) {
+    return errors.sendErrorJSON(
+      res,
+      'MISSING_PARAMETER',
+      'both resize_width and resize_height query parameter required.'
+    );
+  }
+  if (errors.queryExists(req, 'resize_width') === errors.queryExists(req, 'resize_height')) {
+    if (req.query.resize_width <= 0 || req.query.resize_height <= 0) {
+      return errors.sendErrorJSON(
+        res,
+        'INVALID_PARAMETER',
+        'both resize_width and resize_height query parameter must be greater than 0.'
+      );
+    }
+    resizeWidth = req.query.resize_width;
+    resizeHeight = req.query.resize_height;
+
+    const convertedImagePath = await new Promise(resolve =>
+      pdfConverter.convertPDF(
+        req.query.document_id,
+        req.query.page_number,
+        makeTransparent,
+        resizeWidth,
+        resizeHeight,
+        imagePath => {
+          resolve(imagePath);
+        }
+      )
+    );
+    await new Promise((resolve, reject) => {
+      res.download(`${__dirname}/${convertedImagePath}`, err => {
+        if (err) return reject(err);
+        return resolve();
+      });
+    });
+    await new Promise((resolve, reject) => {
+      fs.unlink(convertedImagePath, err => {
+        if (err) reject(err);
+        else resolve(convertedImagePath);
+      });
+    });
+  }
+});
+
+app.listen(config.API.PORT, () => {
+  console.log(`Server has started on port ${config.API.PORT}!`);
+});
